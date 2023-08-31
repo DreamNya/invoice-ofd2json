@@ -1,0 +1,29 @@
+{
+  "name": "invoice-ofd2json",
+  "version": "1.0.0",
+  "description": "解析发票ofd为json",
+  "main": "./src/parser.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DreamNya/invoice-ofd2json.git"
+  },
+  "author": "DreamNya",
+  "license": "MIT",
+  "dependencies": {
+    "jszip": "^3.10.1",
+    "xmldom": "^0.6.0"
+  },
+  "typings": "./src/parser.d.ts",
+  "bugs": {
+    "url": "https://github.com/DreamNya/invoice-ofd2json/issues"
+  },
+  "homepage": "https://github.com/DreamNya/invoice-ofd2json#readme",
+  "keywords": [
+    "invoice",
+    "ofd",
+    "json"
+  ]
+}
