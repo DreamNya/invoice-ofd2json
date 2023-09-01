@@ -132,3 +132,4 @@ dist
 # Demo
 demo/Node.js/input/
 demo/Node.js/output/
+*.exe

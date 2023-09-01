@@ -1,0 +1,22 @@
+{
+  "name": "invoice-ofd2json-demo",
+  "version": "1.0.0",
+  "description": "Node.js Demo 应用实例 批量解析ofd文件并根据内容自动重命名便于归档（config.json可自定义设置）",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "pack": "pkg index.js -t node18"
+  },
+  "keywords": [
+    "demo",
+    "invoice",
+    "ofd",
+    "json"
+  ],
+  "author": "DreamNya",
+  "license": "MIT",
+  "dependencies": {
+    "invoice-ofd2json": "^1.0.0",
+    "node-cmd": "^5.0.0"
+  }
+}
