@@ -50,10 +50,24 @@ await ofd2json(ofd, ?logMessage)
 await ofd2json(ofd, ?logMessage)
 ```
 
-## ScriptManager
-...
+## UserScript
+### 安装（CDN）
+```html
+@require https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js
+@require https://cdn.jsdelivr.net/npm/invoice-ofd2json/src/parser.js
+```
+### 使用
+```js
+/**
+ * 解析输入的ofd文件内容并将其转换为json输出
+ * @param ofd 任意符合JSZip输入格式的ofd文件格式
+ * @param logMessage 用于调试输出时附带的信息
+ * @return json格式的解析后的ofd内容
+ */
+await ofd2json(ofd, ?logMessage)
+```
 ## 应用场景
-详见Demo
-
+详见[Demo](demo)
+（UserScript Demo待补充）
 # License
 MIT
