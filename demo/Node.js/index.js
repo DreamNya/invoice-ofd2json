@@ -4,7 +4,7 @@ const cmd = require('node-cmd');
 
 const Main = async (overrideConfig) => {
     // 读取设置
-    const config = overrideConfig ?? JSON.parse(await fs.readFileSync('config.json', { encoding: 'utf-8' }));
+    const config = overrideConfig ?? JSON.parse(fs.readFileSync('config.json', { encoding: 'utf-8' }));
     const {
         输出json: outputJSON = false,
         输出ofd: renameOFD = true,
@@ -17,13 +17,13 @@ const Main = async (overrideConfig) => {
     } = config;
 
     if (cleanOutput) {
-        await fs.rmSync(outputDir, { recursive: true, force: true });
-        await fs.mkdirSync(outputDir);
+        fs.rmSync(outputDir, { recursive: true, force: true });
+        fs.mkdirSync(outputDir);
         console.log('输出文件夹已清理');
     }
 
     // 读取ofd
-    const filePaths = (await fs.readdirSync(inputDir)).filter((i) => i.endsWith('ofd'));
+    const filePaths = fs.readdirSync(inputDir).filter((i) => i.endsWith('ofd'));
     for (const filePath of filePaths) {
         const inputPath = inputDir + filePath;
         console.log(inputPath);
@@ -48,26 +48,27 @@ const Main = async (overrideConfig) => {
 
         if (outputJSON) {
             const index =
-                (await fs.readdirSync(outputDir)).filter((i) => i.startsWith(prefixName) && i.endsWith('json')).length +
-                1;
+                fs.readdirSync(outputDir).filter((i) => i.startsWith(prefixName) && i.endsWith('json')).length + 1;
             const finalFileName = formatName.replace(/\[序号\]/g, index < 10 ? '0' + index : index);
             const outputPath = outputDir + finalFileName + '.json';
-            await fs.writeFileSync(outputPath, JSON.stringify(json));
+            const prettyJSON = JSON.stringify(json)
+                .replace(/\{|",/g, (m) => m + '\n  ')
+                .replace(/\}$/, '\n}');
+            fs.writeFileSync(outputPath, prettyJSON);
         }
 
         if (renameOFD) {
             const index =
-                (await fs.readdirSync(outputDir)).filter((i) => i.startsWith(prefixName) && i.endsWith('ofd')).length +
-                1;
+                fs.readdirSync(outputDir).filter((i) => i.startsWith(prefixName) && i.endsWith('ofd')).length + 1;
             const finalFileName = formatName.replace(/\[序号\]/g, index < 10 ? '0' + index : index);
             const outputPath = outputDir + finalFileName + '.ofd';
-            await fs.copyFileSync(inputPath, outputPath);
+            fs.copyFileSync(inputPath, outputPath);
         }
     }
 
     if (cleanInput) {
-        await fs.rmSync(inputDir, { recursive: true, force: true });
-        await fs.mkdirSync(inputDir);
+        fs.rmSync(inputDir, { recursive: true, force: true });
+        fs.mkdirSync(inputDir);
         console.log('输入文件夹已清理');
     }
     openOutput && cmd.runSync('explorer ' + outputDir.replace(/\//g, '\\'));
