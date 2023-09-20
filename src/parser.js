@@ -74,7 +74,8 @@ const ofd2json = async (ofd, logMessage = '') => {
             .replace('<:eInvoice xmlns:="">', '<ofd:eInvoice xmlns:ofd="http://www.ofdspec.org/2016">')
             .replace('</:eInvoice>', '</ofd:eInvoice>');
         const value = await xmlSync('Doc_0/Pages/Page_0/Content.xml'); // 明细表
-        return { /*sum,*/ tag: tagPatched, value };
+        const tpl = await xmlSync('Doc_0/Tpls/Tpl_0/Content.xml'); //
+        return { /*sum,*/ tag: tagPatched, value, tpl };
     });
 
     /*
@@ -100,6 +101,13 @@ const ofd2json = async (ofd, logMessage = '') => {
         i.parentNode.getAttribute('ID'),
         i.textContent,
     ]);
+    const xmlTpl = parser.parseFromString(xml.tpl, 'text/xml');
+    const tpls = Object.fromEntries(
+        Array.from(xmlTpl.getElementsByTagName('ofd:TextCode')).map((i) => [
+            i.parentNode.getAttribute('ID'),
+            i.textContent,
+        ])
+    );
 
     // 输出结果
     const value = rawValue.reduce((obj, [index, value]) => {
@@ -114,6 +122,12 @@ const ofd2json = async (ofd, logMessage = '') => {
         lastID[key] = index;
         return obj;
     }, {});
+    
+    // 特殊处理 区分全电发票为专票或普票
+    if (tpls['3']) {
+        value['电子发票类型'] = tpls['3'];
+    }
+
     return value;
 };
 
