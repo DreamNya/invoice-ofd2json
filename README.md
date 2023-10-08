@@ -53,8 +53,8 @@ await ofd2json(ofd, ?logMessage)
 ## UserScript
 ### 安装（CDN）
 ```html
-@require https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js
-@require https://cdn.jsdelivr.net/npm/invoice-ofd2json/src/parser.js
+// @require https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js
+// @require https://cdn.jsdelivr.net/npm/invoice-ofd2json/src/parser.js
 ```
 ### 使用
 ```js
@@ -68,6 +68,6 @@ await ofd2json(ofd, ?logMessage)
 ```
 ## 应用场景
 详见[Demo](demo)
-（UserScript Demo待补充）
+
 # License
 MIT
