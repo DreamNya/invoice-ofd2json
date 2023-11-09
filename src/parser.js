@@ -3,7 +3,8 @@ const DOMParser = globalThis.DOMParser || require('xmldom').DOMParser;
 
 const ofd2json = async (ofd, logMessage = '') => {
     // ID对照表 只能静态定义 文件内没有关联表
-    const Tags = {
+    // Unique为独特ID Merge为可合并ID
+    const TagsUnique = {
         InvoiceCode: '发票代码',
         BuyerAddrTel: '购买方地址、电话',
         BuyerFinancialAccount: '购买方开户行及账号',
@@ -25,6 +26,9 @@ const ofd2json = async (ofd, logMessage = '') => {
         TaxInclusiveTotalAmount: '价税合计（小写）',
         Note: '备注',
         InvoiceClerk: '开票人',
+    };
+    const Unique = Object.values(TagsUnique);
+    const TagsMerge = {
         Item: '项目名称',
         TaxScheme: '税率/征收率',
         MeasurementDimension: '单位',
@@ -34,6 +38,8 @@ const ofd2json = async (ofd, logMessage = '') => {
         Quantity: '数量',
         Specification: '规格型号',
     };
+    const Merge = Object.values(TagsMerge);
+    const Tags = { ...TagsUnique, ...TagsMerge };
     // 储存ID内容
     const lastID = {};
     // 特殊ID 可能存在问题
@@ -44,7 +50,8 @@ const ofd2json = async (ofd, logMessage = '') => {
         72: '价税合计（大写）',
         79: '建筑服务发生地',
         80: '建筑服务发生地',
-        83: () => (lastID['电子发票类型'] ? '价税合计（大写）' : '建筑项目名称'), //电子发票和全电发票中该编码内容不同
+        81: () => (lastID['电子发票类型'] ? '价税合计（大写）' : void 0), //电子发票和全电发票中该编码内容不同
+        83: () => (lastID['电子发票类型'] ? '价税合计（大写）' : '建筑项目名称'),
         84: () => (lastID['电子发票类型'] ? '价税合计（大写）' : '建筑项目名称'),
         6930: '特殊发票类型',
         6934: '价税合计（大写）',
@@ -54,7 +61,8 @@ const ofd2json = async (ofd, logMessage = '') => {
     };
 
     const zip = new JSZip();
-    const parser = new DOMParser();
+    const domparser = new DOMParser();
+    const xmlParser = (string) => domparser.parseFromString(string, 'text/xml');
 
     // 解压ofd 读取xml
     const xml = await zip.loadAsync(ofd).then(async (zipFile) => {
@@ -67,28 +75,48 @@ const ofd2json = async (ofd, logMessage = '') => {
                     (error) => error // error
                 );
         }
-        //const sum = await xmlSync('OFD.xml'); // 摘要表
-        const tag = await xmlSync('Doc_0/Tags/CustomTag.xml'); // ID表
+        // 主表
+        const OFD = await xmlSync('OFD.xml');
+        const xmlOFD = xmlParser(OFD);
+
+        // Document
+        // 兼容node.js 使用getElementsByTagName 代替 querySelector
+        const urlDocument = xmlOFD.getElementsByTagName('ofd:DocRoot')[0].textContent;
+        const urlRoot = urlDocument.replace(/[^\/]+$/, '');
+        const Document = await xmlSync(urlDocument);
+        const xmlDocument = xmlParser(Document);
+
+        // Tag
+        const urlCustomTags = urlRoot + xmlDocument.getElementsByTagName('ofd:CustomTags')[0].textContent;
+        const CustomTags = await xmlSync(urlCustomTags);
+        const xmlCustomTags = xmlParser(CustomTags);
+
+        const locCustomTag = xmlCustomTags.getElementsByTagName('ofd:FileLoc')[0].textContent;
+        const urlCustomTag = urlCustomTags.replace(/[^\/]+$/, locCustomTag);
+        // ID表
+        const CustomTag = await xmlSync(urlCustomTag);
         // 部分ID表不符合xml规范存在解析错误需要额外修正
-        const tagPatched = tag
-            .replace('<:eInvoice xmlns:="">', '<ofd:eInvoice xmlns:ofd="http://www.ofdspec.org/2016">')
-            .replace('</:eInvoice>', '</ofd:eInvoice>');
-        const value = await xmlSync('Doc_0/Pages/Page_0/Content.xml'); // 明细表
-        const tpl = await xmlSync('Doc_0/Tpls/Tpl_0/Content.xml'); //
-        return { /*sum,*/ tag: tagPatched, value, tpl };
+        const tagPatched = CustomTag.replace(
+            '<:eInvoice xmlns:="">',
+            '<ofd:eInvoice xmlns:ofd="http://www.ofdspec.org/2016">'
+        ).replace('</:eInvoice>', '</ofd:eInvoice>');
+        // 明细表
+        const Tpls = await Promise.all(
+            Array.from(xmlDocument.getElementsByTagName('ofd:TemplatePage')).map((i) =>
+                xmlSync(urlRoot + i.getAttribute('BaseLoc'))
+            )
+        );
+        const Pages = await Promise.all(
+            Array.from(xmlDocument.getElementsByTagName('ofd:Page')).map((i) =>
+                xmlSync(urlRoot + i.getAttribute('BaseLoc'))
+            )
+        );
+        return { Tag: tagPatched, Tpls, Pages };
     });
 
-    /*
-    // 摘要
-    const xmlSum = parser.parseFromString(xml.sum, 'text/xml');
-    const json = Object.fromEntries(
-        Array.from(xmlSum.getElementsByTagName('ofd:CustomData')).map((i) => [i.getAttribute('Name'), i.textContent])
-    );
-    */
     // ID对照
-    const xmlTag = parser.parseFromString(xml.tag, 'text/xml');
+    const xmlTag = xmlParser(xml.Tag);
     const tags = Object.fromEntries(
-        // 兼容node.js 使用getElementsByTagName 代替 querySelector
         Array.from(xmlTag.getElementsByTagName('ofd:ObjectRef')).map((i) => {
             const tag = Tags[i.parentNode.nodeName.replace(/^ofd:/, '')];
             if (!tag) console.warn('发现新ID：' + i.parentNode.nodeName, logMessage);
@@ -96,33 +124,42 @@ const ofd2json = async (ofd, logMessage = '') => {
         })
     );
     // 明细
-    const xmlValue = parser.parseFromString(xml.value, 'text/xml');
-    const rawValue = Array.from(xmlValue.getElementsByTagName('ofd:TextCode')).map((i) => [
-        i.parentNode.getAttribute('ID'),
-        i.textContent,
-    ]);
-    const xmlTpl = parser.parseFromString(xml.tpl, 'text/xml');
-    const tpls = Object.fromEntries(
-        Array.from(xmlTpl.getElementsByTagName('ofd:TextCode')).map((i) => [
+    const rawValues = xml.Pages.flatMap((Page) => {
+        const xmlPage = xmlParser(Page);
+        const rawValue = Array.from(xmlPage.getElementsByTagName('ofd:TextCode')).map((i) => [
             i.parentNode.getAttribute('ID'),
             i.textContent,
-        ])
+        ]);
+        return rawValue;
+    });
+    const tpls = Object.fromEntries(
+        xml.Tpls.flatMap((Tpl) => {
+            const xmlTpl = xmlParser(Tpl);
+            const rawTpl = Array.from(xmlTpl.getElementsByTagName('ofd:TextCode')).map((i) => [
+                i.parentNode.getAttribute('ID'),
+                i.textContent,
+            ]);
+            return rawTpl;
+        })
     );
 
     // 输出结果
-    const value = rawValue.reduce((obj, [index, value]) => {
-        const key = tags[index] ?? specialTags[index]?.call?.() ?? specialTags[index] ?? 'UnknownID' + index;
+    const value = rawValues.reduce((obj, [id, value]) => {
+        const key = tags[id] ?? specialTags[id]?.call?.() ?? specialTags[id] ?? 'UnknownID' + id;
         obj[key] = obj[key] ?? '';
-        // 同一key index之差大于1视为多项目，用|分割
-        // 开票人特殊处理
-        if (index - (lastID[key] ?? index) > 1 || (lastID[key] && key == '开票人')) {
-            obj[key] += '|';
+
+        // 同一key id之差大于1视为多项目，用|分割
+        const duplicate = id - (lastID[key] ?? id) > 1;
+        if ((Unique.includes(key) && !duplicate) || Merge.includes(key) || key.startsWith('UnknownID')) {
+            if (duplicate) {
+                obj[key] += '|';
+            }
+            obj[key] += value;
+            lastID[key] = id;
         }
-        obj[key] += value;
-        lastID[key] = index;
         return obj;
     }, {});
-    
+
     // 特殊处理 区分全电发票为专票或普票
     if (tpls['3']) {
         value['电子发票类型'] = tpls['3'];

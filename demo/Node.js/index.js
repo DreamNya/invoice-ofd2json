@@ -1,5 +1,6 @@
 const fs = require('fs');
-const ofd2json = require('invoice-ofd2json');
+// const ofd2json = require('invoice-ofd2json')
+const ofd2json = require('../../src/parser');
 const cmd = require('node-cmd');
 
 const Main = async (overrideConfig) => {

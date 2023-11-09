@@ -1,13 +1,17 @@
 <head>
+    <meta charset="utf8" />
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/invoice-ofd2json/src/parser.js" crossorigin="anonymous"></script>
+    <!-- <script src="../../src/parser.js"></script> -->
 </head>
 
 <body>
     <input type="file" accept=".ofd" />
     <script>
         document.querySelector('input').addEventListener('change', async ({ target }) => {
-            alert(JSON.stringify(await ofd2json(target.files[0])));
+            const result = await ofd2json(target.files[0]);
+            console.log(result);
+            alert(JSON.stringify(result));
         });
     </script>
 </body>
