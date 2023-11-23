@@ -1,6 +1,6 @@
 {
   "name": "invoice-ofd2json",
-  "version": "1.0.3",
+  "version": "1.0.5",
   "description": "解析发票ofd为json",
   "main": "./src/parser.js",
   "scripts": {

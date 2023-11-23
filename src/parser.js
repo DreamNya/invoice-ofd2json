@@ -150,7 +150,7 @@ const ofd2json = async (ofd, logMessage = '') => {
 
         // 同一key id之差大于1视为多项目，用|分割
         const duplicate = id - (lastID[key] ?? id) > 1;
-        if ((Unique.includes(key) && !duplicate) || Merge.includes(key) || key.startsWith('UnknownID')) {
+        if ((Unique.includes(key) && !duplicate) || Merge.includes(key) || key.startsWith?.('UnknownID')) {
             if (duplicate) {
                 obj[key] += '|';
             }
